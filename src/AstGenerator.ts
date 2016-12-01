@@ -69,11 +69,12 @@ export class AstGenerator {
     
     private convertCommand(command: wp.Command, typesStorrage: ts.Type[], paramsTypeSuffix: string = "Params", resultTypeSuffix: string = "Result"): ts.Method {
         let method: ts.Method = new ts.Method(command.name, "any", command.description);
+        let uppercasedMethodName = method.name.charAt(0).toUpperCase() + method.name.slice(1);
 
         // Resolve return type
         if (command.returns) {
             let returnedTypeDefinition: wp.TypeDefinition = { 
-                id: `${method.name}${resultTypeSuffix}`,
+                id: `${uppercasedMethodName}${resultTypeSuffix}`,
                 type: 'object',
                 description: `The result from ${command.name} method`,
                 properties: command.returns
@@ -86,7 +87,7 @@ export class AstGenerator {
         // Resolve parameters
         if (command.parameters && command.parameters.length > 0) {
             let paramsTypeDefinition: wp.TypeDefinition = {
-                id: `${method.name}${paramsTypeSuffix}`,
+                id: `${uppercasedMethodName}${paramsTypeSuffix}`,
                 type: 'object',
                 description: `Parameters passed to the '${command.name}' method`,
                 properties: command.parameters 
