@@ -9,17 +9,17 @@ export class Namespace implements IComment {
         this.isDeclaration = isDeclaration;
         this.comment = comment;
         this.namespaces = [];
-        this.interfaces = [];
-        this.typedefs = [];
+        this.types = [];
     }
     
     name: string;
     isDeclaration: boolean;
     comment: string;
     namespaces: Namespace[];
-    interfaces: Interface[];
-    typedefs: Typedef[];
+    types: Type[];
 }
+
+export type Type = Interface | Typedef;
 
 export class Typedef implements IComment {
     
@@ -40,12 +40,13 @@ export class Interface implements IComment {
         this.name = name;
         this.comment = comment;
         this.properties = [];
+        this.methods = [];
     }
     
     name: string;
     comment: string;
     properties: Property[];
-    callSignature: CallSignature;
+    methods: Method[];
 }
 
 export class Property implements IComment {
@@ -63,20 +64,22 @@ export class Property implements IComment {
     comment: string;
 }
 
-export class CallSignature implements IComment {
+export class Method implements IComment {
     
-    constructor(returnType: string, comment: string = '') {
+    constructor(name: string, returnType: string, comment: string = '') {
+        this.name = name;
         this.returnType = returnType;
         this.comment = comment;
         this.parameters = [];
     }
     
-    returnType: string;
+    name: string;
     comment: string;
-    parameters: FunctionParameter[];
+    returnType: string;
+    parameters: MethodParameter[];
 }
 
-export class FunctionParameter implements IComment {
+export class MethodParameter implements IComment {
     
     constructor(name: string, type: string, isOptional: boolean = false, comment: string = '') {
         this.name = name;

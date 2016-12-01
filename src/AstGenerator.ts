@@ -8,50 +8,32 @@ export class AstGenerator {
         
         if (domain.types) {
             for (let type of domain.types) {
-                let tsType: ts.Interface | ts.Typedef = this.convertType(type);
-                if (tsType instanceof ts.Interface) {
-                    namespace.interfaces.push(<ts.Interface>tsType);
-                }
-                else {
-                    namespace.typedefs.push(<ts.Typedef>tsType);
-                }
+                let tsType: ts.Type = this.convertType(type);
+                namespace.types.push(tsType);
             }
         }
         
-        let commandsNamespace: ts.Namespace = new ts.Namespace('Commands', false, `All commands belonging to the ${namespace.name} domain.`);
-        namespace.namespaces.push(commandsNamespace);
+        let mainInterface = new ts.Interface(namespace.name, namespace.name);
+        namespace.types.push(mainInterface);
+
         if (domain.commands) {
             for (let command of domain.commands) {
-                let result = this.convertCommand(command);
-                if (result.args) {
-                    namespace.interfaces.push(result.args);
-                }
-                if (result.returns) {
-                    namespace.interfaces.push(result.returns);
-                }
-                commandsNamespace.interfaces.push(result.func);
+                let method: ts.Method = this.convertCommand(command, namespace.types);
+                mainInterface.methods.push(method);
             }
         }
-        
-        let eventsNamespace: ts.Namespace = new ts.Namespace('Events', false, `All events belonging to the ${namespace.name} domain.`);
-        namespace.namespaces.push(eventsNamespace);
+
         if (domain.events) {
             for(let event of domain.events) {
-                let result = this.convertEvent(event);
-                if (result.args) {
-                    namespace.interfaces.push(result.args);
-                }
-                if (result.returns) {
-                    namespace.interfaces.push(result.returns);
-                }
-                eventsNamespace.interfaces.push(result.func);
+                let method: ts.Method = this.convertEvent(event, namespace.types);
+                mainInterface.methods.push(method);
             }
         }
         
         return namespace;
     }
     
-    public convertType(type: wp.TypeDefinition): ts.Interface | ts.Typedef {
+    public convertType(type: wp.TypeDefinition): ts.Type {
         if (type.type == 'object') {
             let tsInterface: ts.Interface = new ts.Interface(type.id, type.description);
             if (type.properties) {
@@ -85,45 +67,42 @@ export class AstGenerator {
         }
     }
     
-    private convertCommand(command: wp.Command): { func: ts.Interface, returns: ts.Interface, args: ts.Interface } {
-        return this.convertCommandOrEvent(command, true);
-    }
-    
-    public convertEvent(event: wp.Event): { func: ts.Interface, returns: ts.Interface, args: ts.Interface } {
-        return this.convertCommandOrEvent(event, false);
-    }
-    
-    private convertCommandOrEvent(command: wp.Command, isCommand: boolean): { func: ts.Interface, returns: ts.Interface, args: ts.Interface } {
-        
-        let commandName = command.name.charAt(0).toUpperCase() + command.name.slice(1);
-        let resultName = commandName + 'Result';
-        let result: { func: ts.Interface, returns: ts.Interface, args: ts.Interface } = { func: null, returns: null, args: null };
-        
+    private convertCommand(command: wp.Command, typesStorrage: ts.Type[], paramsTypeSuffix: string = "Params", resultTypeSuffix: string = "Result"): ts.Method {
+        let method: ts.Method = new ts.Method(command.name, "any", command.description);
+
+        // Resolve return type
         if (command.returns) {
-            let returnedType: wp.TypeDefinition = { id: resultName, type: 'object', description: `The returned object from ${command.name} command`, properties: command.returns };
-            result.returns = <ts.Interface>this.convertType(returnedType);
+            let returnedTypeDefinition: wp.TypeDefinition = { 
+                id: `${method.name}${resultTypeSuffix}`,
+                type: 'object',
+                description: `The result from ${command.name} method`,
+                properties: command.returns
+            };
+            let returnType = this.convertType(returnedTypeDefinition);
+            typesStorrage.push(returnType);
+            method.returnType = this.convertTypeRef({ '$ref': returnType.name });
         }
-        
-        let funcType: wp.TypeDefinition = { id: command.name, type: 'object', description: command.description, properties: [] };
-        result.func = <ts.Interface>this.convertType(funcType);
-        let callSignReturnType: string = result.returns ? this.convertTypeRef({ '$ref': result.returns.name }) : 'any';
-        result.func.callSignature = new ts.CallSignature(callSignReturnType, '');
-        if (command.parameters) {
-            // If it is command - list all parameters in the function signature.
-            // In case of event - wrap all parameters in EventArgs interface. 
-            if (isCommand) {
-                for (let i = 0; i < command.parameters.length; i++) {
-                    let param: wp.TypeProperty = command.parameters[i];
-                    result.func.callSignature.parameters.push(new ts.FunctionParameter(param.name, this.convertTypeRef(param), param.optional, param.description ));
-                }
-            }
-            else {
-                let paramType: wp.TypeDefinition = { id: `${commandName}EventArgs`, type: 'object', description: `Arguments passed to the '${command.name}' event.`, properties: command.parameters };
-                result.args = <ts.Interface>this.convertType(paramType);
-                result.func.callSignature.parameters.push(new ts.FunctionParameter('params', paramType.id, false, ''));
-            }
+
+        // Resolve parameters
+        if (command.parameters && command.parameters.length > 0) {
+            let paramsTypeDefinition: wp.TypeDefinition = {
+                id: `${method.name}${paramsTypeSuffix}`,
+                type: 'object',
+                description: `Parameters passed to the '${command.name}' method`,
+                properties: command.parameters 
+            };
+            let paramsType = this.convertType(paramsTypeDefinition);
+            typesStorrage.push(paramsType);
+            method.parameters.push(new ts.MethodParameter('args', paramsType.name, false, ''));
         }
-        
-        return result;
+
+        return method;
+    }
+    
+    public convertEvent(event: wp.Event, typesStorrage: ts.Type[]): ts.Method {
+        let method: ts.Method = this.convertCommand(event, typesStorrage, "EventArgs");
+        let uppercasedMethodName = method.name.charAt(0).toUpperCase() + method.name.slice(1);
+        method.name = `on${uppercasedMethodName}`;
+        return method;
     }
 }

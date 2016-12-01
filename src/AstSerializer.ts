@@ -44,14 +44,12 @@ export class AstSerializer {
             this.writeNamespace(innerNamespace, indentedContext);
         }
         
-        for (let tsTypedef of namespace.typedefs) {
+        for (let tsType of namespace.types) {
             this.writeLine('', indentedContext);
-            this.writeTypedef(tsTypedef, indentedContext);
-        }
-        
-        for (let tsInterface of namespace.interfaces) {
-            this.writeLine('', indentedContext);
-            this.writeInterface(tsInterface, indentedContext);
+            if (tsType instanceof ts.Typedef)
+                this.writeTypedef(tsType, indentedContext);
+            else if (tsType instanceof ts.Interface)
+                this.writeInterface(tsType, indentedContext);
         }
         
         this.writeLine('}', context);
@@ -69,9 +67,8 @@ export class AstSerializer {
         for (let property of tsInterface.properties) {
             this.writeProperty(property, context.indented());
         }
-        // write call signature
-        if (tsInterface.callSignature) {
-            this.writeCallSignature(tsInterface.callSignature, context.indented());
+        for (let method of tsInterface.methods) {
+            this.writeMethod(method, context.indented());
         }
         this.writeLine('}', context);
     }
@@ -79,23 +76,14 @@ export class AstSerializer {
     public writeProperty(property: ts.Property, context: SerializationContext) {
         this.writeLine(`${property.name}${property.isOptional ? '?' : ''}: ${property.type}; // ${property.comment}`, context);
     }
-    
-    public writeCallSignature(callSignature: ts.CallSignature, context: SerializationContext) {
-        if (callSignature.parameters.length == 0) {
-            this.writeLine(`(): ${callSignature.returnType}`, context);
-        }
-        else {
-            let paramStrings: string[] = callSignature.parameters.map<string>((p, i, a) => this.getParamString(p, i == a.length - 1));
-            this.writeLine(`(${paramStrings.length > 0 ? paramStrings[0] : ''}`, context);
-            for (let i = 1; i < paramStrings.length; i++) {
-                this.writeLine(paramStrings[i], context);
-            }
-            this.writeLine(`): ${callSignature.returnType};`, context);
-        }
+
+    public writeMethod(method: ts.Method, context: SerializationContext) {
+        let paramString = method.parameters.map<string>((p) => this.getParamString(p)).join(', ');
+        this.writeLine(`${method.name}(${paramString}): ${method.returnType}; // ${method.comment ? `// ${method.comment}` : ''}`, context);
     }
     
-    private getParamString(param: ts.FunctionParameter, isLast: boolean): string {
-        return `${param.name}${param.isOptional ? '?' : ''}: ${param.type}${isLast ? '' : `,`} // ${param.comment}`;
+    private getParamString(param: ts.MethodParameter): string {
+        return `${param.name}${param.isOptional ? '?' : ''}: ${param.type} ${param.comment ? `/* ${param.comment} */`: ''}`;
     }
     
     public writeLine(value: string, context: SerializationContext) {
