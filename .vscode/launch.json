@@ -7,7 +7,7 @@
 			"request": "launch",
 			"program": "${workspaceRoot}/out/index.js",
 			"stopOnEntry": false,
-			"args": ["--inputDir", "./protocol", "--namespace", "Webkit", "--out", "webkit-generated.d.ts"],
+			"args": ["${workspaceRoot}/default-args"],
 			"cwd": "${workspaceRoot}",
 			"runtimeExecutable": null,
 			"runtimeArgs": [

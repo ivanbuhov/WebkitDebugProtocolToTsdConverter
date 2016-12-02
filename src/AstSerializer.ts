@@ -70,6 +70,9 @@ export class AstSerializer {
         for (let method of tsInterface.methods) {
             this.writeMethod(method, context.indented());
         }
+        for (let commentLine of tsInterface.commentLines) {
+            this.writeCommentLine(commentLine, context.indented());
+        }
         this.writeLine('}', context);
     }
     
@@ -80,6 +83,10 @@ export class AstSerializer {
     public writeMethod(method: ts.Method, context: SerializationContext) {
         let paramString = method.parameters.map<string>((p) => this.getParamString(p)).join(', ');
         this.writeLine(`${method.name}(${paramString}): ${method.returnType}; // ${method.comment ? `// ${method.comment}` : ''}`, context);
+    }
+
+    public writeCommentLine(commentLine: string, context: SerializationContext) {
+        this.writeLine(`// ${commentLine}`, context);
     }
     
     private getParamString(param: ts.MethodParameter): string {

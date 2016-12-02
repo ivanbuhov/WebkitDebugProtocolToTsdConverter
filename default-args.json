@@ -1,0 +1,6 @@
+{
+    "inputDir": "./protocol",
+    "namespace": "Webkit",
+    "out": "webkit-generated.d.ts",
+    "commandResultTemplate": "Promise<Response<{*}>>"
+}

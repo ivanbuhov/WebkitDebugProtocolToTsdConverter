@@ -5,11 +5,18 @@ import * as wp from './WebkitProtocolDescription';
 import {AstGenerator} from './AstGenerator';
 import * as ser from './AstSerializer';
 
+interface ProgramArgs {
+    inputDir: string,
+    namespace: string,
+    out: string,
+    commandResultTemplate: string
+}
+
 class Program {
     static main(): any {
-        let args: { inputDir: string, namespace: string, out: string } = this.parseProcessArgs();
-        
-        let astGenerator: AstGenerator = new AstGenerator();
+        let args: ProgramArgs = require(process.argv[2]);
+
+        let astGenerator: AstGenerator = new AstGenerator(args.commandResultTemplate);
         let fileStream: fs.WriteStream = fs.createWriteStream(args.out);
         let astSerializer = new ser.AstSerializer(fileStream);
         
@@ -25,19 +32,6 @@ class Program {
             astSerializer.writeNamespace(rootNamespace, new ser.SerializationContext());
             fileStream.end();
         });
-    }
-    
-    public static parseProcessArgs(): any {
-        var processArgs = process.argv.slice(2);
-        var args = { inputDir: './protocol', namespace: 'Webkit', out: './webkit-generated.d.ts' };
-        
-        for(var i = 0; i < processArgs.length; i++) {
-            if (processArgs[i][0] == '-' && processArgs[i][1] == '-' && i + 1 < processArgs.length) {
-                args[processArgs[i].substr(2)] = processArgs[i + 1];
-            }
-        }
-    
-        return args;
     }
 }
 

@@ -39,12 +39,14 @@ export class Interface implements IComment {
     constructor(name: string, comment: string = '') {
         this.name = name;
         this.comment = comment;
+        this.commentLines = [];
         this.properties = [];
         this.methods = [];
     }
     
     name: string;
     comment: string;
+    commentLines: string[];
     properties: Property[];
     methods: Method[];
 }

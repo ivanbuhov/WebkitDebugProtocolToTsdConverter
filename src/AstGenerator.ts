@@ -2,6 +2,11 @@ import * as ts from './TypeScriptAst';
 import * as wp from './WebkitProtocolDescription';
 
 export class AstGenerator {
+    private commandResultTemplate: string;
+
+    constructor(commandResultTemplate: string) {
+        this.commandResultTemplate = commandResultTemplate;
+    }
     
     public convertDomain(domain: wp.Domain): ts.Namespace {
         let namespace: ts.Namespace = new ts.Namespace(domain.domain, false, domain.description);
@@ -13,20 +18,21 @@ export class AstGenerator {
             }
         }
         
-        let mainInterface = new ts.Interface(namespace.name, namespace.name);
-        namespace.types.push(mainInterface);
+        let agentInterface = new ts.Interface(namespace.name, namespace.name);
+        namespace.types.unshift(agentInterface);
 
         if (domain.commands) {
             for (let command of domain.commands) {
                 let method: ts.Method = this.convertCommand(command, namespace.types);
-                mainInterface.methods.push(method);
+                agentInterface.methods.push(method);
             }
         }
 
         if (domain.events) {
             for(let event of domain.events) {
                 let method: ts.Method = this.convertEvent(event, namespace.types);
-                mainInterface.methods.push(method);
+                agentInterface.commentLines.push(`Event: ${method.name}(${method.parameters.map(p => p.type).join(', ')})`);
+                // agentInterface.methods.push(method); events are not converted to methods in the interface
             }
         }
         
@@ -83,6 +89,7 @@ export class AstGenerator {
             typesStorrage.push(returnType);
             method.returnType = this.convertTypeRef({ '$ref': returnType.name });
         }
+        method.returnType = this.commandResultTemplate.replace('{*}', method.returnType);
 
         // Resolve parameters
         if (command.parameters && command.parameters.length > 0) {
@@ -101,9 +108,6 @@ export class AstGenerator {
     }
     
     public convertEvent(event: wp.Event, typesStorrage: ts.Type[]): ts.Method {
-        let method: ts.Method = this.convertCommand(event, typesStorrage, "EventArgs");
-        let uppercasedMethodName = method.name.charAt(0).toUpperCase() + method.name.slice(1);
-        method.name = `on${uppercasedMethodName}`;
-        return method;
+        return this.convertCommand(event, typesStorrage, "EventArgs");
     }
 }
