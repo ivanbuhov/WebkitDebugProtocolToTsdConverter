@@ -68,17 +68,19 @@ export class Property implements IComment {
 
 export class Method implements IComment {
     
-    constructor(name: string, returnType: string, comment: string = '') {
+    constructor(name: string, returnType: string, isOptional: boolean, comment: string = '') {
         this.name = name;
         this.returnType = returnType;
-        this.comment = comment;
+        this.isOptional = isOptional;
         this.parameters = [];
+        this.comment = comment;
     }
     
     name: string;
-    comment: string;
     returnType: string;
+    isOptional: boolean;
     parameters: MethodParameter[];
+    comment: string;
 }
 
 export class MethodParameter implements IComment {

@@ -74,7 +74,7 @@ export class AstGenerator {
     }
     
     private convertCommand(command: wp.Command, typesStorrage: ts.Type[], paramsTypeSuffix: string = "Params", resultTypeSuffix: string = "Result"): ts.Method {
-        let method: ts.Method = new ts.Method(command.name, "any", command.description);
+        let method: ts.Method = new ts.Method(command.name, "any", true, command.description);
         let uppercasedMethodName = method.name.charAt(0).toUpperCase() + method.name.slice(1);
 
         // Resolve return type

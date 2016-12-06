@@ -82,7 +82,7 @@ export class AstSerializer {
 
     public writeMethod(method: ts.Method, context: SerializationContext) {
         let paramString = method.parameters.map<string>((p) => this.getParamString(p)).join(', ');
-        this.writeLine(`${method.name}(${paramString}): ${method.returnType}; // ${method.comment ? `// ${method.comment}` : ''}`, context);
+        this.writeLine(`${method.name}${method.isOptional ? '?' : ''}(${paramString}): ${method.returnType}; // ${method.comment ? `// ${method.comment}` : ''}`, context);
     }
 
     public writeCommentLine(commentLine: string, context: SerializationContext) {
